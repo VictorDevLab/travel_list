@@ -19,6 +19,12 @@ export default function App() {
       )
     );
   };
+  const clearList = () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to clear the entire list?"
+    );
+    if (confirmed) setItems([]);
+  };
   return (
     <div className="app">
       <Logo />
@@ -27,8 +33,9 @@ export default function App() {
         items={items}
         handleDeleteItem={handleDeleteItem}
         onToggleItem={handleToggleItem}
+        clearList={clearList}
       />
-      <Stats />
+      <Stats items={items} />
     </div>
   );
 }
@@ -73,11 +80,24 @@ function Form({ onAddItems }) {
     </form>
   );
 }
-function PackingList({ items, handleDeleteItem, onToggleItem }) {
+function PackingList({ items, handleDeleteItem, onToggleItem, clearList }) {
+  //more derived state
+  const [sortBy, setSortBy] = useState("input");
+  let sortedItems;
+  if (sortBy === "input") sortedItems = items;
+
+  if (sortBy === "description")
+    sortedItems = items
+      .slice()
+      .sort((a, b) => a.description.localeCompare(b.description));
+  if (sortBy === "packed")
+    sortedItems = items
+      .slice()
+      .sort((a, b) => Number(a.packed) - Number(b.packed));
   return (
     <div className="list">
       <ul>
-        {items.map((item) => (
+        {sortedItems.map((item) => (
           <Item
             item={item}
             onToggleItem={onToggleItem}
@@ -86,6 +106,14 @@ function PackingList({ items, handleDeleteItem, onToggleItem }) {
           />
         ))}
       </ul>
+      <div className="actions">
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="input">sort by input order</option>
+          <option value="description">sort by description</option>
+          <option value="packed">sort by packed status</option>
+        </select>
+        <button onClick={clearList}>Clear List</button>
+      </div>
     </div>
   );
 }
@@ -107,11 +135,30 @@ function Item({ item, handleDeleteItem, onToggleItem }) {
     </li>
   );
 }
-function Stats() {
+function Stats({ items }) {
+  //early return
+  if (!items.length) {
+    return (
+      <p className="stats">
+        <em>📣Start adding items to your packing list </em>
+      </p>
+    );
+  }
+  //deriving state
+  const numItems = items.length;
+  const packedItems = items.filter((item) => item.packed).length;
+  const percentage = Math.round((packedItems / numItems) * 100);
+
   return (
     <em>
       <footer className="stats">
-        You have x items on your list and you already pacled X(x%)
+        <em>
+          {percentage === 100
+            ? "You have everything ready to go 🛫✈️"
+            : //if you dont want to use template literals you can write two different em tags
+              `You have ${numItems} items on your list and you already packed
+  ${packedItems}(${percentage}%) `}
+        </em>
       </footer>
     </em>
   );
